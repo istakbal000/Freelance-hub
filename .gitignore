@@ -1,0 +1,21 @@
+# Environment variables - keep secrets safe
+.env
+.env.local
+
+# Dependencies
+node_modules/
+client/node_modules/
+
+# Production build
+client/build/
+
+# Logs
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
