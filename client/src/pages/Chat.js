@@ -17,7 +17,10 @@ const Chat = () => {
   const socketRef = useRef();
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    const SOCKET_URL = process.env.NODE_ENV === 'production'
+      ? 'https://freelance-hub-o44d.onrender.com'
+      : 'http://localhost:5000';
+    socketRef.current = io(SOCKET_URL);
     socketRef.current.emit('joinRoom', { userId: user?.id });
     socketRef.current.on('receiveMessage', (data) => {
       if (data.senderId === selectedUser?._id) {
@@ -104,8 +107,8 @@ const Chat = () => {
                     fetchUserAndMessages(conv.user._id);
                   }}
                   className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors ${selectedUser?._id === conv.user._id
-                      ? 'bg-indigo-50'
-                      : 'hover:bg-gray-50'
+                    ? 'bg-indigo-50'
+                    : 'hover:bg-gray-50'
                     }`}
                 >
                   <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center shrink-0">
@@ -160,8 +163,8 @@ const Chat = () => {
                     return (
                       <div key={i} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-2xl text-sm ${isMine
-                            ? 'bg-indigo-600 text-white rounded-br-sm'
-                            : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
+                          ? 'bg-indigo-600 text-white rounded-br-sm'
+                          : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
                           }`}>
                           <div>{msg.message}</div>
                           <div className={`text-xs mt-1 ${isMine ? 'text-indigo-200' : 'text-gray-400'}`}>

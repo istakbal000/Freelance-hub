@@ -38,7 +38,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000",
+  "proxy": "https://freelance-hub-o44d.onrender.com",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.0",
     "autoprefixer": "^10.4.24",
