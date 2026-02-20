@@ -19,7 +19,7 @@ const io = socketIo(server, {
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://freelance-hub-o44d.onrender.com'
+  'https://freelance-hub-1-tcq3.onrender.com'
 ];
 
 app.use(cors({
