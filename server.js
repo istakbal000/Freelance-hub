@@ -43,6 +43,11 @@ mongoose.connect(process.env.MONGODB_URI, {
   console.log('MongoDB connection error:', err);
 });
 
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running', timestamp: new Date() });
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/contracts', require('./routes/contracts'));
