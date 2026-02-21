@@ -18,7 +18,7 @@ const Chat = () => {
 
   useEffect(() => {
     const SOCKET_URL = process.env.NODE_ENV === 'production'
-      ? 'https://freelance-hub-o44d.onrender.com'
+      ? 'https://freelance-hub-n8dk.onrender.com'
       : 'http://localhost:5000';
     socketRef.current = io(SOCKET_URL);
     socketRef.current.emit('joinRoom', { userId: user?.id });

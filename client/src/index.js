@@ -7,7 +7,7 @@ import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
 // Point all API calls to the backend on Render
-axios.defaults.baseURL = 'https://freelance-hub-1-tcq3.onrender.com';
+axios.defaults.baseURL = 'https://freelance-hub-n8dk.onrender.com';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

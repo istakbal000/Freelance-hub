@@ -12,14 +12,14 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? false : "http://localhost:3000",
+    origin: process.env.NODE_ENV === 'production' ? 'https://freelance-hub-n8dk.onrender.com' : 'http://localhost:3000',
     methods: ["GET", "POST"]
   }
 });
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://freelance-hub-1-tcq3.onrender.com'
+  'https://freelance-hub-n8dk.onrender.com'
 ];
 
 app.use(cors({
