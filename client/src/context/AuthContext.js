@@ -48,9 +48,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       return { success: true };
     } catch (err) {
-      return { 
-        success: false, 
-        message: err.response?.data?.message || 'Login failed' 
+      return {
+        success: false,
+        message: err.response?.data?.message || 'Login failed'
       };
     }
   };
@@ -64,9 +64,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       return { success: true };
     } catch (err) {
-      return { 
-        success: false, 
-        message: err.response?.data?.message || 'Registration failed' 
+      return {
+        success: false,
+        message: err.response?.data?.message || 'Registration failed'
       };
     }
   };
@@ -84,22 +84,40 @@ export const AuthProvider = ({ children }) => {
       setUser(res.data.data);
       return { success: true };
     } catch (err) {
-      return { 
-        success: false, 
-        message: err.response?.data?.message || 'Update failed' 
+      return {
+        success: false,
+        message: err.response?.data?.message || 'Update failed'
+      };
+    }
+  };
+
+  const uploadPhoto = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      const res = await axios.post('/api/users/upload-photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUser(prev => ({ ...prev, profilePhoto: res.data.profilePhoto }));
+      return { success: true, profilePhoto: res.data.profilePhoto };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.response?.data?.message || 'Photo upload failed'
       };
     }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
       loading,
-      login, 
-      register, 
-      logout, 
-      updateProfile 
+      login,
+      register,
+      logout,
+      updateProfile,
+      uploadPhoto
     }}>
       {children}
     </AuthContext.Provider>
