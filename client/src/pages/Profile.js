@@ -3,6 +3,16 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
+// Sanitize user-provided URLs to prevent XSS injections
+const getSafeUrl = (url) => {
+  if (!url) return '';
+  const sanitized = url.trim().toLowerCase();
+  if (sanitized.startsWith('javascript:') || sanitized.startsWith('data:text/html') || sanitized.startsWith('vbscript:')) {
+    return '#';
+  }
+  return url;
+};
+
 const Profile = () => {
   const { id } = useParams();
   const { user, updateProfile, uploadPhoto } = useAuth();
@@ -103,7 +113,7 @@ const Profile = () => {
             <div className="relative shrink-0 group">
               {profile.profilePhoto ? (
                 <img
-                  src={profile.profilePhoto}
+                  src={getSafeUrl(profile.profilePhoto)}
                   alt={profile.name}
                   className="w-20 h-20 rounded-2xl object-cover shadow-md"
                 />
@@ -243,7 +253,7 @@ const Profile = () => {
             profile.portfolioLinks?.length > 0 ? (
               <div className="space-y-2">
                 {profile.portfolioLinks.map((link, i) => (
-                  <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-600 text-sm hover:underline">
+                  <a key={i} href={getSafeUrl(link)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-600 text-sm hover:underline">
                     🔗 {link}
                   </a>
                 ))}

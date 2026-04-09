@@ -5,26 +5,74 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.NODE_ENV === 'production' ? 'https://freelance-hub-n8dk.onrender.com' : 'http://localhost:3000',
-    methods: ["GET", "POST"]
-  }
-});
 
-app.use(cors({
-  origin: '*',
-  credentials: false,
+// 1. Trust proxy: Required for Render (or any reverse proxy) to correctly identify client IPs and protocols (x-forwarded-proto)
+app.set('trust proxy', 1);
+
+// 2. Force HTTPS in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      if (req.method === 'GET' || req.method === 'HEAD') {
+        // Use 301 (Permanent Redirect) for GET requests
+        return res.redirect(301, `https://${req.header('host')}${req.url}`);
+      } else {
+        // Return 403 for non-GET HTTP requests (POST, PUT, DELETE)
+        // If we redirected these, they would lose their request body.
+        return res.status(403).json({ error: 'HTTPS is required for this endpoint.' });
+      }
+    }
+    next();
+  });
+}
+
+// 3. Security Headers with Helmet
+// Disabling contentSecurityPolicy to avoid interfering with React inline scripts unless explicitly configured
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
+
+// 4. Configure Secure CORS
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? ['https://freelance-hub-n8dk.onrender.com'] // Add other production domains here if needed
+  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl) or if origin is in the allowed list
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies/authorization headers to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
+// 5. Rate Limiting for API routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per window
+  standardHeaders: true, 
+  legacyHeaders: false,
+  message: { status: 429, message: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+
+// Apply rate limiting to all /api routes
+app.use('/api', apiLimiter);
+
+// Database Connection
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -54,17 +102,41 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+// 6. Server & Socket Configuration
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   socket.on('joinRoom', ({ userId }) => {
+    // Basic validation
+    if (!userId || typeof userId !== 'string') return;
     socket.join(userId);
   });
 
   socket.on('sendMessage', ({ senderId, receiverId, message }) => {
+    // Input Validation
+    if (!senderId || typeof senderId !== 'string') return;
+    if (!receiverId || typeof receiverId !== 'string') return;
+    if (!message || typeof message !== 'string') return;
+
+    // Reject empty messages safely
+    const trimmedMessage = message.trim();
+    if (trimmedMessage.length === 0) return;
+
+    // Reject excessively long messages to prevent abuse
+    if (trimmedMessage.length > 5000) return;
+
     io.to(receiverId).emit('receiveMessage', {
       senderId,
-      message,
+      message: trimmedMessage,
       timestamp: new Date()
     });
   });
