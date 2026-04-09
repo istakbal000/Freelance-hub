@@ -3,14 +3,22 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-// Sanitize user-provided URLs to prevent XSS injections
+// Sanitize user-provided URLs using a strict allowlist approach to prevent XSS.
+// Denylist-based checks (e.g. startsWith 'javascript:') can be bypassed with
+// whitespace padding or encoding tricks. An allowlist is safer.
 const getSafeUrl = (url) => {
-  if (!url) return '';
-  const sanitized = url.trim().toLowerCase();
-  if (sanitized.startsWith('javascript:') || sanitized.startsWith('data:text/html') || sanitized.startsWith('vbscript:')) {
-    return '#';
+  if (!url || typeof url !== 'string') return '#';
+  const trimmed = url.trim();
+  // Only allow safe, explicit protocols or relative paths
+  if (
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('/')
+  ) {
+    return trimmed;
   }
-  return url;
+  // Block everything else: javascript:, data:, vbscript:, blob:, etc.
+  return '#';
 };
 
 const Profile = () => {
