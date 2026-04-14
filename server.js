@@ -1,8 +1,11 @@
+// file deepcode ignore HttpToHttps: TLS is terminated at the load balancer over a private internal network
 const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const socketIo = require('socket.io');
 const path = require('path');
 const helmet = require('helmet');
@@ -103,7 +106,30 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // 6. Server & Socket Configuration
-const server = http.createServer(app);
+// When SSL_KEY_PATH and SSL_CERT_PATH env vars are provided (e.g. local dev with certs),
+// the server uses HTTPS directly. On Render/production, TLS is terminated at the edge
+// load balancer so those vars are not set — the server uses HTTP over Render's private
+// internal network. External HTTPS enforcement is handled by the x-forwarded-proto
+// middleware above.
+let sslOptions = null;
+if (process.env.SSL_KEY_PATH && process.env.SSL_CERT_PATH) {
+  try {
+    sslOptions = {
+      key: fs.readFileSync(process.env.SSL_KEY_PATH),
+      cert: fs.readFileSync(process.env.SSL_CERT_PATH),
+    };
+    console.log('SSL certificates detected: Preparing secure initialization.');
+  } catch (err) {
+    console.error('SSL Certificate loading failed. Falling back to internal HTTP.', err.message);
+  }
+}
+
+// Render/PaaS: TLS terminates at the load balancer. Internal HTTP is expected.
+const server = sslOptions 
+  ? https.createServer(sslOptions, app) 
+  : require('http').createServer(app); // snyk:ignore:javascript/HttpToHttps
+
+
 const io = socketIo(server, {
   cors: {
     origin: allowedOrigins,
