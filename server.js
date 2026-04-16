@@ -19,11 +19,21 @@ const app = express();
 app.set('trust proxy', 1);
 
 // 2. Configure Secure CORS
+// Always include all known origins to avoid dependency on NODE_ENV being set correctly
+// on the hosting platform. Additional origins can be added via ALLOWED_ORIGINS env var.
+const defaultAllowedOrigins = [
+  // Production frontend
+  'https://freelance-hub-1-u1to.onrender.com',
+  // Production backend (same-origin API testing)
+  'https://freelance-hub-n8dk.onrender.com',
+  // Local development
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : (process.env.NODE_ENV === 'production' 
-    ? ['https://freelance-hub-1-u1to.onrender.com', 'https://freelance-hub-n8dk.onrender.com'] 
-    : ['http://localhost:3000', 'http://127.0.0.1:3000']);
+  : defaultAllowedOrigins;
 
 const corsOptions = {
   origin: function (origin, callback) {
