@@ -189,4 +189,19 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Keep-alive ping to prevent Render free-tier cold starts.
+  // Render spins down services after 15 minutes of inactivity.
+  // Pinging every 14 minutes keeps the server warm.
+  if (process.env.SERVER_URL) {
+    const PING_INTERVAL = 14 * 60 * 1000; // 14 minutes
+    setInterval(() => {
+      https.get(`${process.env.SERVER_URL}/health`, (res) => {
+        console.log(`Keep-alive ping sent. Status: ${res.statusCode}`);
+      }).on('error', (err) => {
+        console.error('Keep-alive ping failed:', err.message);
+      });
+    }, PING_INTERVAL);
+    console.log(`Keep-alive ping scheduled every 14 minutes to ${process.env.SERVER_URL}/health`);
+  }
 });
