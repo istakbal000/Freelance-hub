@@ -42,9 +42,11 @@ app.use(helmet({
 }));
 
 // 4. Configure Secure CORS
-const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? ['https://freelance-hub-n8dk.onrender.com'] // Add other production domains here if needed
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : (process.env.NODE_ENV === 'production' 
+    ? ['https://freelance-hub-1-u1to.onrender.com', 'https://freelance-hub-n8dk.onrender.com'] 
+    : ['http://localhost:3000', 'http://127.0.0.1:3000']);
 
 const corsOptions = {
   origin: function (origin, callback) {
