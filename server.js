@@ -18,30 +18,7 @@ const app = express();
 // 1. Trust proxy: Required for Render (or any reverse proxy) to correctly identify client IPs and protocols (x-forwarded-proto)
 app.set('trust proxy', 1);
 
-// 2. Force HTTPS in production
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      if (req.method === 'GET' || req.method === 'HEAD') {
-        // Use 301 (Permanent Redirect) for GET requests
-        return res.redirect(301, `https://${req.header('host')}${req.url}`);
-      } else {
-        // Return 403 for non-GET HTTP requests (POST, PUT, DELETE)
-        // If we redirected these, they would lose their request body.
-        return res.status(403).json({ error: 'HTTPS is required for this endpoint.' });
-      }
-    }
-    next();
-  });
-}
-
-// 3. Security Headers with Helmet
-// Disabling contentSecurityPolicy to avoid interfering with React inline scripts unless explicitly configured
-app.use(helmet({
-  contentSecurityPolicy: false,
-}));
-
-// 4. Configure Secure CORS
+// 2. Configure Secure CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : (process.env.NODE_ENV === 'production' 
@@ -59,10 +36,35 @@ const corsOptions = {
   },
   credentials: true, // Allow cookies/authorization headers to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
 app.use(cors(corsOptions));
+
+// 3. Force HTTPS in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      if (req.method === 'GET' || req.method === 'HEAD') {
+        // Use 301 (Permanent Redirect) for GET requests
+        return res.redirect(301, `https://${req.header('host')}${req.url}`);
+      } else {
+        // Return 403 for non-GET HTTP requests (POST, PUT, DELETE)
+        // If we redirected these, they would lose their request body.
+        return res.status(403).json({ error: 'HTTPS is required for this endpoint.' });
+      }
+    }
+    next();
+  });
+}
+
+// 4. Security Headers with Helmet
+// Disabling contentSecurityPolicy to avoid interfering with React inline scripts unless explicitly configured
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
+
 app.use(express.json());
 
 // 5. Rate Limiting for API routes
