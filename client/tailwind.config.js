@@ -6,17 +6,37 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        canvas: '#F8FAFC',
+        surface: '#FFFFFF',
+        surfaceDim: '#F1F5F9',
+        surfaceBright: '#FFFFFF',
         primary: {
-          DEFAULT: '#6366f1',
-          dark: '#4f46e5',
-          light: '#eef2ff',
+          DEFAULT: '#1E3A8A', // deep navy
+          container: '#DBEAFE',
+          on: '#FFFFFF',
         },
-        secondary: '#10b981',
-        danger: '#ef4444',
-        warning: '#f59e0b',
+        secondary: {
+          DEFAULT: '#0284C7', // sky blue
+          container: '#E0F2FE',
+          on: '#FFFFFF',
+        },
+        tertiary: {
+          DEFAULT: '#059669', // emerald
+          container: '#D1FAE5',
+          on: '#FFFFFF',
+        },
+        error: {
+          DEFAULT: '#DC2626', // red-600
+          container: '#FEE2E2',
+          on: '#FFFFFF',
+        },
+        borderSubtle: '#E2E8F0',
+        glassFill: 'rgba(255, 255, 255, 0.7)',
       },
       fontFamily: {
+        sora: ['Sora', 'sans-serif'],
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       animation: {
         'float': 'float 3s ease-in-out infinite',

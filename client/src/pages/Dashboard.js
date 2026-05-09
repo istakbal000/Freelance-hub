@@ -3,145 +3,189 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const StatCard = ({ value, label, icon }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-all">
-    <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-2xl shrink-0">{icon}</div>
-    <div>
-      <div className="text-3xl font-extrabold text-indigo-600">{value}</div>
-      <div className="text-sm text-gray-500 mt-0.5">{label}</div>
-    </div>
-  </div>
-);
-
 const Dashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ contracts: 0, applications: 0 });
+  const [stats, setStats] = useState({
+    activeContracts: 0,
+    completedContracts: 0,
+    totalEarnings: 0,
+    pendingApplications: 0
+  });
   const [recentContracts, setRecentContracts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchDashboardData(); }, [user?.role]);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
 
-  const fetchDashboardData = async () => {
-    try {
-      if (user?.role === 'experienced') {
-        const res = await axios.get('/api/contracts/my/contracts');
-        setStats(prev => ({ ...prev, contracts: res.data.count }));
-        setRecentContracts(res.data.data.slice(0, 3));
-      } else {
-        const res = await axios.get('/api/contracts');
-        setStats(prev => ({ ...prev, contracts: res.data.count }));
-        setRecentContracts(res.data.data.slice(0, 3));
-        const appsRes = await axios.get('/api/applications/my-applications');
-        setStats(prev => ({ ...prev, applications: appsRes.data.count }));
+        // Fetch user's contracts based on role
+        const endpoint = user?.role === 'experienced' ? '/api/contracts/user/my-posts' : '/api/contracts/user/my-applications';
+        const response = await axios.get(`${process.env.REACT_APP_API_URL || ''}${endpoint}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const contracts = response.data;
+        
+        // Calculate stats
+        let active = 0;
+        let completed = 0;
+        let pending = 0;
+        let earnings = 0;
+
+        if (user?.role === 'experienced') {
+          active = contracts.filter(c => c.status === 'in_progress').length;
+          completed = contracts.filter(c => c.status === 'completed').length;
+          setStats({ activeContracts: active, completedContracts: completed, totalEarnings: 0, pendingApplications: 0 });
+          setRecentContracts(contracts.slice(0, 5));
+        } else {
+          // For beginners, contracts represents applications
+          active = contracts.filter(a => a.status === 'accepted').length;
+          completed = contracts.filter(a => a.status === 'completed').length;
+          pending = contracts.filter(a => a.status === 'pending').length;
+          
+          // Simplified earnings calculation from completed contracts
+          earnings = contracts
+            .filter(a => a.status === 'completed' && a.contract)
+            .reduce((sum, a) => sum + (a.contract.budget || 0), 0);
+            
+          setStats({ activeContracts: active, completedContracts: completed, totalEarnings: earnings, pendingApplications: pending });
+          setRecentContracts(
+            contracts
+              .filter(a => a.contract)
+              .map(a => ({ ...a.contract, applicationStatus: a.status }))
+              .slice(0, 5)
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const statusColors = {
-    open: 'bg-emerald-100 text-emerald-700',
-    in_progress: 'bg-amber-100 text-amber-700',
-    completed: 'bg-blue-100 text-blue-700',
-  };
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user]);
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-24 flex items-center justify-center bg-gray-50">
-        <div className="spinner" />
+      <div className="min-h-screen pt-20 bg-canvas flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12">
+    <div className="min-h-screen pt-24 pb-12 bg-canvas text-slate-900 font-sans">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.name}! 👋</h1>
-          <p className="text-gray-500 mt-1">
-            {user?.role === 'experienced' ? 'Experienced Freelancer Dashboard' : 'Beginner Freelancer Dashboard'}
-          </p>
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-sora font-bold text-slate-900 mb-2">
+              Welcome back, <span className="text-primary">{user?.name?.split(' ')[0]}</span>
+            </h1>
+            <p className="text-slate-600">Here's what's happening with your projects today.</p>
+          </div>
+          <div className="flex gap-3">
+            {user?.role === 'experienced' ? (
+              <Link to="/post-contract" className="px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm">
+                Post New Contract
+              </Link>
+            ) : (
+              <Link to="/contracts" className="px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition shadow-sm">
+                Find Work
+              </Link>
+            )}
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          <StatCard
-            value={stats.contracts}
-            label={user?.role === 'experienced' ? 'My Contracts' : 'Available Contracts'}
-            icon="📋"
-          />
-          {user?.role === 'beginner' && (
-            <StatCard value={stats.applications} label="My Applications" icon="📝" />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div className="bg-white border border-borderSubtle rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-slate-500 text-sm font-semibold mb-1 uppercase tracking-wider">Active Projects</div>
+            <div className="text-3xl font-sora font-bold text-slate-900">{stats.activeContracts}</div>
+          </div>
+          
+          <div className="bg-white border border-borderSubtle rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-slate-500 text-sm font-semibold mb-1 uppercase tracking-wider">Completed</div>
+            <div className="text-3xl font-sora font-bold text-slate-900">{stats.completedContracts}</div>
+          </div>
+
+          {user?.role === 'beginner' ? (
+            <>
+              <div className="bg-white border border-borderSubtle rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-slate-500 text-sm font-semibold mb-1 uppercase tracking-wider">Total Earnings</div>
+                <div className="text-3xl font-sora font-bold text-tertiary">${stats.totalEarnings}</div>
+              </div>
+              <div className="bg-white border border-borderSubtle rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-slate-500 text-sm font-semibold mb-1 uppercase tracking-wider">Pending Apps</div>
+                <div className="text-3xl font-sora font-bold text-secondary">{stats.pendingApplications}</div>
+              </div>
+            </>
+          ) : (
+            <div className="bg-secondary/5 border border-secondary/20 rounded-2xl p-6 shadow-sm sm:col-span-2 lg:col-span-2">
+              <div className="text-secondary text-sm font-semibold mb-1 uppercase tracking-wider">Quick Actions</div>
+              <div className="flex gap-4 mt-3">
+                <Link to="/applications" className="text-sm text-primary hover:text-secondary font-medium transition-colors">Review Applicants →</Link>
+                <Link to="/chat" className="text-sm text-primary hover:text-secondary font-medium transition-colors">Open Messages →</Link>
+              </div>
+            </div>
           )}
-          <StatCard
-            value={(user?.rating || 0).toFixed(1)}
-            label={`Rating (${user?.totalReviews || 0} reviews)`}
-            icon="⭐"
-          />
         </div>
 
-        {/* Recent Contracts */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {user?.role === 'experienced' ? 'Recent Contracts' : 'Recent Opportunities'}
-            </h2>
-            <Link to="/contracts" className="text-sm text-indigo-600 font-medium hover:underline">
-              View all →
+        {/* Recent Activity */}
+        <div className="bg-white border border-borderSubtle rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-borderSubtle bg-slate-50 flex justify-between items-center">
+            <h2 className="text-lg font-sora font-semibold text-slate-900">Recent {user?.role === 'experienced' ? 'Contracts' : 'Applications'}</h2>
+            <Link to={user?.role === 'experienced' ? '/contracts' : '/applications'} className="text-sm text-primary hover:text-secondary font-medium transition-colors">
+              View All
             </Link>
           </div>
-
-          {recentContracts.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-5xl mb-3">📋</div>
-              <h3 className="font-semibold text-gray-700 mb-1">No contracts yet</h3>
-              <p className="text-gray-400 text-sm mb-4">
-                {user?.role === 'experienced' ? 'Start by posting your first contract' : 'Check back soon for new opportunities'}
-              </p>
-              {user?.role === 'experienced' && (
-                <Link to="/post-contract" className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition">
-                  + Post Contract
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentContracts.map(contract => (
-                <div key={contract._id} className="border border-gray-100 rounded-xl p-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-800 text-sm leading-tight">{contract.title}</h3>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ml-2 shrink-0 ${statusColors[contract.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {contract.status}
-                    </span>
+          
+          <div className="divide-y divide-borderSubtle">
+            {recentContracts.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                No recent activity to show.
+              </div>
+            ) : (
+              recentContracts.map((contract, index) => (
+                <div key={contract?._id || index} className="p-6 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-slate-900 font-semibold mb-1 font-sora">{contract?.title || 'Unknown Contract'}</h3>
+                    <div className="text-sm text-slate-500 flex items-center gap-3">
+                      <span className="font-medium text-slate-700">${contract?.budget ?? 'N/A'}</span>
+                      <span>•</span>
+                      <span>{contract?.duration || 'N/A'}</span>
+                    </div>
                   </div>
-                  <div className="text-lg font-bold text-emerald-600 mb-2">${contract.budget}</div>
-                  <p className="text-xs text-gray-400 mb-3 leading-relaxed line-clamp-2">{contract.description}</p>
-                  <Link to={`/contracts/${contract._id}`} className="block text-center text-xs text-indigo-600 font-medium border border-indigo-200 py-1.5 rounded-lg hover:bg-indigo-50 transition">
-                    View Details
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${
+                      (contract?.status || contract?.applicationStatus) === 'completed' || (contract?.status || contract?.applicationStatus) === 'accepted' ? 'bg-tertiary/10 text-tertiary border-tertiary/20' :
+                      (contract?.status || contract?.applicationStatus) === 'in_progress' ? 'bg-secondary/10 text-secondary border-secondary/20' :
+                      (contract?.status || contract?.applicationStatus) === 'rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+                      'bg-amber-100 text-amber-700 border-amber-200'
+                    }`}>
+                      {((contract?.status || contract?.applicationStatus) || 'pending').replace('_', ' ').toUpperCase()}
+                    </span>
+                    {contract?._id && (
+                      <Link to={`/contracts/${contract._id}`} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-borderSubtle rounded-lg hover:border-primary transition-colors shadow-sm">
+                        Details
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Actions (experienced) */}
-        {user?.role === 'experienced' && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/post-contract" className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition shadow-sm">
-                + Post New Contract
-              </Link>
-              <Link to="/applications" className="px-4 py-2 border border-indigo-500 text-indigo-600 text-sm font-medium rounded-xl hover:bg-indigo-50 transition">
-                View Applicants
-              </Link>
-            </div>
+              ))
+            )}
           </div>
-        )}
+        </div>
+        
       </div>
     </div>
   );
