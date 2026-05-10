@@ -30,6 +30,11 @@ const UserSchema = new mongoose.Schema({
     enum: ['beginner', 'experienced'],
     required: [true, 'Please specify a role']
   },
+  profession: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Profession cannot be more than 100 characters']
+  },
   skills: [{
     type: String,
     trim: true

@@ -75,6 +75,14 @@ const Header = () => {
               </li>
               <li>
                 <Link
+                  to="/portfolio"
+                  className="text-sm font-medium text-secondary hover:text-primary transition-colors"
+                >
+                  Portfolio
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/profile"
                   className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary border border-borderSubtle rounded-lg hover:bg-slate-50 transition-colors"
                 >
@@ -144,6 +152,7 @@ const Header = () => {
                   <Link to="/applications" className="block px-4 py-2 text-sm font-medium text-secondary hover:bg-slate-50 hover:text-primary rounded-lg" onClick={() => setMobileOpen(false)}>My Applications</Link>
                 )}
                 <Link to="/chat" className="block px-4 py-2 text-sm font-medium text-secondary hover:bg-slate-50 hover:text-primary rounded-lg" onClick={() => setMobileOpen(false)}>Messages</Link>
+                <Link to="/portfolio" className="block px-4 py-2 text-sm font-medium text-secondary hover:bg-slate-50 hover:text-primary rounded-lg" onClick={() => setMobileOpen(false)}>Portfolio</Link>
                 <Link to="/profile" className="block px-4 py-2 text-sm font-medium text-primary hover:bg-slate-50 rounded-lg" onClick={() => setMobileOpen(false)}>{user?.name}</Link>
                 <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm font-medium text-secondary hover:text-error hover:bg-error/10 rounded-lg">Logout</button>
               </>

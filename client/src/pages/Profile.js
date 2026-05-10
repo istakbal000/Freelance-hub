@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext';
 // Sanitize user-provided URLs using a strict allowlist.
 // Only https://, http://, and relative paths (/) are permitted.
 // Everything else (javascript:, data:, vbscript:, blob:, etc.) is blocked.
-// Using encodeURI on the result ensures static analyzers recognize the output as safe.
 const getSafeUrl = (url) => {
   if (!url || typeof url !== 'string') return '#';
   const trimmed = url.trim();
@@ -16,7 +15,6 @@ const getSafeUrl = (url) => {
     trimmed.startsWith('/')
   ) {
     try {
-      // encodeURI is a recognized built-in sanitizer that static analyzers trust
       return encodeURI(decodeURI(trimmed));
     } catch {
       return '#';
@@ -26,7 +24,6 @@ const getSafeUrl = (url) => {
 };
 
 // Sanitize a full profile object received from the API before storing in state.
-// This prevents tainted data from ever entering React state.
 const sanitizeProfile = (data) => ({
   ...data,
   profilePhoto: getSafeUrl(data.profilePhoto || ''),
@@ -39,7 +36,7 @@ const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({ name: '', bio: '', skills: '', portfolioLinks: '' });
+  const [formData, setFormData] = useState({ name: '', bio: '', profession: '', skills: '', portfolioLinks: '' });
   const [saving, setSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState('');
@@ -48,17 +45,17 @@ const Profile = () => {
   const isOwnProfile = !id || id === user?.id;
   const profileId = id || user?.id;
 
-  useEffect(() => { fetchProfile(); }, [profileId]);
+  useEffect(() => { fetchProfile(); }, [profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchProfile = async () => {
     try {
       const res = await axios.get(`/api/users/${profileId}`);
-      // Sanitize before storing in state — breaks the taint chain from API → useState → DOM
       const safe = sanitizeProfile(res.data.data);
       setProfile(safe);
       setFormData({
         name: safe.name,
         bio: safe.bio || '',
+        profession: safe.profession || '',
         skills: (safe.skills || []).join(', '),
         portfolioLinks: (safe.portfolioLinks || []).join(', ')
       });
@@ -74,6 +71,7 @@ const Profile = () => {
     const result = await updateProfile({
       name: formData.name,
       bio: formData.bio,
+      profession: formData.profession,
       skills: formData.skills.split(',').map(s => s.trim()).filter(s => s),
       portfolioLinks: formData.portfolioLinks.split(',').map(l => l.trim()).filter(l => l)
     });
@@ -105,7 +103,6 @@ const Profile = () => {
       setPhotoError(result.message);
     }
     setPhotoUploading(false);
-    // Reset so same file can be re-uploaded if needed
     e.target.value = '';
   };
 
@@ -128,15 +125,15 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
+
         {/* Profile Header */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+
             {/* Avatar with upload overlay */}
             <div className="relative shrink-0 group">
               {profile.profilePhoto && profile.profilePhoto !== '#' ? (
                 (() => {
-                  // safePhotoUrl is already sanitized via getSafeUrl() inside sanitizeProfile()
-                  // Re-binding to a local const makes the taint-free path explicit for static analysers
                   const safePhotoUrl = getSafeUrl(profile.profilePhoto);
                   return (
                     <img
@@ -152,7 +149,6 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* Upload overlay — only visible on own profile */}
               {isOwnProfile && (
                 <>
                   <button
@@ -197,7 +193,7 @@ const Profile = () => {
               )}
               <p className="text-sm text-gray-400 mb-2">{profile.email}</p>
               {photoError && (
-                <p className="text-xs text-red-500 mb-2">⚠️ {photoError}</p>
+                <p className="text-xs text-red-500 mb-2">&#9888;&#65039; {photoError}</p>
               )}
               {isOwnProfile && !photoUploading && (
                 <p className="text-xs text-gray-400 mb-2">Hover over photo to change it</p>
@@ -206,13 +202,18 @@ const Profile = () => {
                 <span className="inline-block bg-indigo-100 text-indigo-600 text-xs font-semibold px-3 py-1 rounded-full uppercase">
                   {profile.role}
                 </span>
+                {profile.profession && (
+                  <span className="inline-block bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full">
+                    {profile.profession}
+                  </span>
+                )}
                 <div className="flex items-center gap-1">
                   <span className="text-yellow-400 text-sm">{'★'.repeat(Math.round(profile.rating || 0))}{'☆'.repeat(5 - Math.round(profile.rating || 0))}</span>
                   <span className="text-xs text-gray-400">({profile.totalReviews || 0} reviews)</span>
                 </div>
                 {profile.totalReviews > 0 && (
                   <Link to={`/reviews/${profile._id}`} className="text-xs text-indigo-600 font-medium hover:underline">
-                    See reviews →
+                    See reviews &#8594;
                   </Link>
                 )}
               </div>
@@ -231,7 +232,7 @@ const Profile = () => {
                   </div>
                 ) : (
                   <button onClick={() => setEditing(true)} className="px-4 py-2 border border-gray-300 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition">
-                    ✏️ Edit Profile
+                    &#9999;&#65039; Edit Profile
                   </button>
                 )}
               </div>
@@ -243,13 +244,23 @@ const Profile = () => {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-4">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">About</h3>
           {editing ? (
-            <textarea
-              className={`${inputCls} min-h-[100px] resize-y`}
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              placeholder="Tell us about yourself..."
-              maxLength="500"
-            />
+            <>
+              <textarea
+                className={`${inputCls} min-h-[100px] resize-y mb-3`}
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                placeholder="Tell us about yourself..."
+                maxLength="500"
+              />
+              <input
+                type="text"
+                className={inputCls}
+                value={formData.profession}
+                onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                placeholder="Your profession (e.g., Graphic Designer, Content Writer, Web Developer)"
+                maxLength="100"
+              />
+            </>
           ) : (
             <p className="text-gray-600 leading-relaxed text-sm">{profile.bio || 'No bio provided yet.'}</p>
           )}
@@ -259,7 +270,7 @@ const Profile = () => {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-4">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Skills</h3>
           {editing ? (
-            <input type="text" className={inputCls} value={formData.skills} onChange={(e) => setFormData({ ...formData, skills: e.target.value })} placeholder="Comma-separated skills" />
+            <input type="text" className={inputCls} value={formData.skills} onChange={(e) => setFormData({ ...formData, skills: e.target.value })} placeholder="Comma-separated skills (e.g., Illustration, Copywriting, SEO)" />
           ) : (
             profile.skills?.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -275,30 +286,37 @@ const Profile = () => {
 
         {/* Portfolio */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-4">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Portfolio</h3>
-          {editing ? (
-            <input type="text" className={inputCls} value={formData.portfolioLinks} onChange={(e) => setFormData({ ...formData, portfolioLinks: e.target.value })} placeholder="Comma-separated links" />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Portfolio</h3>
+            {isOwnProfile && (
+              <Link
+                to={`/portfolio/${profile._id}`}
+                className="text-xs text-indigo-600 font-semibold hover:underline"
+              >
+                View Public Portfolio &#8594;
+              </Link>
+            )}
+          </div>
+          {isOwnProfile ? (
+            <Link
+              to="/portfolio"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition shadow-sm"
+            >
+              &#127912; Manage My Portfolio
+            </Link>
           ) : (
-            profile.portfolioLinks?.length > 0 ? (
-              <div className="space-y-2">
-                {profile.portfolioLinks.filter(l => l && l !== '#').map((link, i) => {
-                  // safeLink already passed getSafeUrl in sanitizeProfile; local binding breaks taint chain for static analysers
-                  const safeLink = getSafeUrl(link);
-                  return (
-                  <a key={i} href={safeLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-600 text-sm hover:underline">
-                    🔗 {safeLink}
-                  </a>
-                  );})}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">No portfolio links provided yet.</p>
-            )
+            <Link
+              to={`/portfolio/${profile._id}`}
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-indigo-200 text-indigo-600 text-sm font-semibold rounded-xl hover:bg-indigo-50 transition"
+            >
+              &#128065;&#65039; View Portfolio
+            </Link>
           )}
         </div>
 
         {!isOwnProfile && (
           <Link to={`/chat/${profile._id}`} className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 transition shadow-md">
-            💬 Send Message
+            &#128172; Send Message
           </Link>
         )}
       </div>

@@ -1,4 +1,5 @@
 const express = require('express');
+const validator = require('validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
@@ -6,22 +7,34 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, skills, bio, portfolioLinks } = req.body;
+    const { name, email, password, role, profession, skills, bio, portfolioLinks } = req.body;
 
-    const userExists = await User.findOne({ email });
+    // 1. Validation & Sanitization
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ success: false, message: 'Please provide name, email, password, and role' });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email' });
+    }
+
+    const userExists = await User.findOne({ email: email.toLowerCase() });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
+    const userData = {
+      name: validator.escape(name.trim()).substring(0, 50),
+      email: email.toLowerCase().trim(),
+      password, // Bcrypt will handle this in model pre-save
       role,
-      skills: skills || [],
-      bio,
-      portfolioLinks: portfolioLinks || []
-    });
+      profession: profession ? validator.escape(profession.trim()).substring(0, 100) : '',
+      bio: bio ? validator.escape(bio.trim()).substring(0, 500) : '',
+      skills: Array.isArray(skills) ? skills.map(s => validator.escape(String(s).trim()).substring(0, 30)) : [],
+      portfolioLinks: Array.isArray(portfolioLinks) ? portfolioLinks.filter(l => validator.isURL(l, { protocols: ['http','https'], require_protocol: true })) : []
+    };
+
+    const user = await User.create(userData);
 
     const token = user.getSignedJwtToken();
 
@@ -33,6 +46,7 @@ router.post('/register', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profession: user.profession,
         skills: user.skills,
         bio: user.bio,
         portfolioLinks: user.portfolioLinks,

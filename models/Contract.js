@@ -12,6 +12,26 @@ const ContractSchema = new mongoose.Schema({
     required: [true, 'Please add a contract description'],
     maxlength: [2000, 'Description cannot be more than 2000 characters']
   },
+  category: {
+    type: String,
+    enum: [
+      'Web & App Development',
+      'Design & Creative',
+      'Writing & Content',
+      'Digital Marketing',
+      'Video & Animation',
+      'Music & Audio',
+      'Photography & Art',
+      'Business & Finance',
+      'Legal',
+      'Education & Tutoring',
+      'Virtual Assistant',
+      'Data & Analytics',
+      'Architecture & Engineering',
+      'Other'
+    ],
+    default: 'Other'
+  },
   skillsRequired: [{
     type: String,
     trim: true

@@ -8,6 +8,7 @@ const Register = () => {
     email: '',
     password: '',
     role: 'beginner',
+    profession: '',
     bio: '',
     skills: '',
     portfolioLinks: ''
@@ -101,8 +102,12 @@ const Register = () => {
                 className={`${inputCls} min-h-[90px] resize-y`} />
             </div>
             <div>
+              <label className={labelCls}>Your Profession <span className="text-slate-400 font-normal">(what you do)</span></label>
+              <input type="text" name="profession" value={formData.profession} onChange={handleChange} className={inputCls} placeholder="e.g., Graphic Designer, Content Writer, Web Developer" maxLength={100} />
+            </div>
+            <div>
               <label className={labelCls}>Skills <span className="text-slate-400 font-normal">(comma-separated)</span></label>
-              <input type="text" name="skills" value={formData.skills} onChange={handleChange} className={inputCls} placeholder="React, Node.js, Design" />
+              <input type="text" name="skills" value={formData.skills} onChange={handleChange} className={inputCls} placeholder="e.g., Logo Design, Copywriting, Video Editing" />
             </div>
             <div>
               <label className={labelCls}>Portfolio Links <span className="text-slate-400 font-normal">(comma-separated)</span></label>

@@ -110,6 +110,7 @@ app.use('/api/contracts', require('./routes/contracts'));
 app.use('/api/applications', require('./routes/applications'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/portfolio', require('./routes/portfolio'));
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {

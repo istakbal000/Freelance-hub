@@ -14,6 +14,8 @@ import Profile from './pages/Profile';
 import Applications from './pages/Applications';
 import Chat from './pages/Chat';
 import Reviews from './pages/Reviews';
+import PortfolioDashboard from './pages/PortfolioDashboard';
+import PublicPortfolio from './pages/PublicPortfolio';
 import './App.css';
 
 function App() {
@@ -45,6 +47,8 @@ function App() {
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/chat/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/reviews/:userId" element={<ProtectedRoute><Reviews /></ProtectedRoute>} />
+          <Route path="/portfolio" element={<ProtectedRoute><PortfolioDashboard /></ProtectedRoute>} />
+          <Route path="/portfolio/:userId" element={<PublicPortfolio />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
