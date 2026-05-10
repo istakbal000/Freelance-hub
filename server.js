@@ -18,6 +18,12 @@ const app = express();
 // 1. Trust proxy: Required for Render (or any reverse proxy) to correctly identify client IPs and protocols (x-forwarded-proto)
 app.set('trust proxy', 1);
 
+// Custom Request Logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.header('origin') || 'No Origin'}`);
+  next();
+});
+
 // 2. Configure Secure CORS
 // Always include all known origins to avoid dependency on NODE_ENV being set correctly
 // on the hosting platform. Additional origins can be added via ALLOWED_ORIGINS env var.
@@ -35,19 +41,22 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : defaultAllowedOrigins;
 
+// Allow all origins in development, but stick to the list in production
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl) or if origin is in the allowed list
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl) 
+    // or if origin is in the allowed list
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
+      console.warn(`Blocked by CORS: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true, // Allow cookies/authorization headers to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  optionsSuccessStatus: 200 
 };
 
 app.use(cors(corsOptions));
@@ -111,6 +120,12 @@ app.use('/api/applications', require('./routes/applications'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/portfolio', require('./routes/portfolio'));
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  console.log(`404 at ${req.originalUrl}`);
+  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
+});
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
@@ -205,4 +220,21 @@ server.listen(PORT, () => {
     }, PING_INTERVAL);
     console.log(`Keep-alive ping scheduled every 14 minutes to ${process.env.SERVER_URL}/health`);
   }
+});
+
+// 7. Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(`[Error] ${req.method} ${req.url}:`, err.stack || err.message);
+  
+  // If headers already sent, delegate to default express error handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });

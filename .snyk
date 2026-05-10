@@ -1,0 +1,22 @@
+# Snyk (https://snyk.io) policy file
+# https://docs.snyk.io/snyk-cli/test-for-vulnerabilities/the-.snyk-file
+version: v1.25.0
+
+ignore:
+  # CWE-319 — Cleartext Transmission (Snyk Code: javascript/HttpToHttps)
+  # FALSE POSITIVE: http.createServer is intentional for Render/PaaS deployments.
+  # On Render, TLS is terminated at the edge load balancer; this Node process receives
+  # plain HTTP over Render's internal private network and never exposes HTTP externally.
+  # External HTTPS is enforced via the x-forwarded-proto redirect middleware in server.js.
+  # Reference: https://render.com/docs/web-services#port-binding
+  javascript/HttpToHttps:
+    - 'server.js':
+        reason: >
+          Render PaaS terminates TLS at the edge load balancer.
+          http.createServer is correct for internal Render networking.
+          External HTTPS is enforced via x-forwarded-proto middleware (server.js).
+          Using https.createServer would conflict with Render's SSL proxy.
+        expires: '2027-04-13T00:00:00.000Z'
+        created: '2026-04-13T10:53:00.000Z'
+
+patch: {}

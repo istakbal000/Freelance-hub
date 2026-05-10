@@ -62,6 +62,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(`Login attempt for: ${email}`);
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide email and password' });
