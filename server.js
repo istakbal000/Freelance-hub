@@ -122,15 +122,15 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/portfolio', require('./routes/portfolio'));
 
 // 404 handler for API routes
-app.use('/api/*', (req, res) => {
-  console.log(`404 at ${req.originalUrl}`);
+app.use('/api/*splat', (req, res) => {
+  console.log('404 at %s', req.originalUrl);
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client/build')));
-  app.get('*', (req, res) => {
+  app.get('/{*splat}', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
@@ -224,7 +224,7 @@ server.listen(PORT, () => {
 
 // 7. Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(`[Error] ${req.method} ${req.url}:`, err.stack || err.message);
+  console.error('[Error] %s %s:', req.method, req.url, err.stack || err.message);
   
   // If headers already sent, delegate to default express error handler
   if (res.headersSent) {
