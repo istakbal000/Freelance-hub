@@ -122,7 +122,7 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/portfolio', require('./routes/portfolio'));
 
 // 404 handler for API routes
-app.use(/\/api(?:\/.*)?/, (req, res) => {
+app.use(/^\/api(?:\/.*)?$/, (req, res) => {
   console.log('404 at %s', req.originalUrl);
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
