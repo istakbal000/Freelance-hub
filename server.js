@@ -122,7 +122,7 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/portfolio', require('./routes/portfolio'));
 
 // 404 handler for API routes
-app.use('/api/*splat', (req, res) => {
+app.use(/\/api(?:\/.*)?/, (req, res) => {
   console.log('404 at %s', req.originalUrl);
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
@@ -130,7 +130,7 @@ app.use('/api/*splat', (req, res) => {
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client/build')));
-  app.get('/{*splat}', (req, res) => {
+  app.get(/.*/, (req, res) => {
     res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
