@@ -6,7 +6,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
-axios.defaults.baseURL = 'https://freelance-hub-n8dk.onrender.com';
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

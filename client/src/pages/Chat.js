@@ -17,7 +17,7 @@ const Chat = () => {
   const socketRef = useRef();
 
   useEffect(() => {
-    const SOCKET_URL = 'https://freelance-hub-n8dk.onrender.com';
+    const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
     socketRef.current = io(SOCKET_URL);
     socketRef.current.emit('joinRoom', { userId: user?.id });
     socketRef.current.on('receiveMessage', (data) => {
